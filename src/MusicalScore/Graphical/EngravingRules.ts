@@ -16,6 +16,7 @@ import { NoteEnum, AccidentalEnum } from "../../Common/DataObjects/Pitch";
 import { ChordSymbolEnum, CustomChord, DegreesInfo } from "../../MusicalScore/VoiceData/ChordSymbolContainer";
 import { GraphicalNote } from "./GraphicalNote";
 import { Note } from "../VoiceData/Note";
+import { WarningCollector } from "../../OpenSheetMusicDisplay/OSMDWarnings";
 
 /** Rendering and Engraving options, more fine-grained than [[IOSMDOptions]].
  *  Not all of these options are meant to be modified by users of the library,
@@ -540,8 +541,10 @@ export class EngravingRules {
     public SkyBottomLineWebGLMinMeasures: number;
     /** Whether to always set preferred backend (WebGL or Plain) automatically, depending on browser and number of measures. */
     public AlwaysSetPreferredSkyBottomLineBackendAutomatically: boolean;
+    public WarningCollector: WarningCollector;
 
     constructor() {
+        this.WarningCollector = new WarningCollector();
         this.loadDefaultValues();
     }
 

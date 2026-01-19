@@ -25,6 +25,11 @@ import { MusicPartManagerIterator } from "../MusicalScore/MusicParts/MusicPartMa
 import { ITransposeCalculator } from "../MusicalScore/Interfaces/ITransposeCalculator";
 import { NoteEnum } from "../Common/DataObjects/Pitch";
 import { TemposCalculator } from "../MusicalScore/ScoreIO/MusicSymbolModules/TemposCalculator";
+import { GraphicalMeasure } from "../MusicalScore/Graphical/GraphicalMeasure";
+import { GraphicalNote } from "../MusicalScore/Graphical/GraphicalNote";
+import { GraphicalStaffEntry } from "../MusicalScore/Graphical/GraphicalStaffEntry";
+import { PointF2D } from "../Common/DataObjects/PointF2D";
+import { WarningCollector, OSMDWarning } from "./OSMDWarnings";
 
 /**
  * The main class and control point of OpenSheetMusicDisplay.<br>
@@ -98,6 +103,14 @@ export class OpenSheetMusicDisplay {
      * so you can make modifications to the xml that OSMD will use.
      * Note that this is (re-)set on osmd.setOptions as `{return xml}`, unless you specify the function in the options. */
     public OnXMLRead: (xml: string) => string;
+
+    protected onMeasureClick: ((measureNumber: number, staffIndex: number, measure: GraphicalMeasure) => void) | undefined;
+    protected onNoteClick: ((note: GraphicalNote, measureNumber: number) => void) | undefined;
+    protected measureHoverEnabled: boolean = false;
+    protected measureHoverClass: string = "osmd-measure-hover";
+    protected hoveredMeasure: GraphicalMeasure | undefined;
+    protected interactionListenersAttached: boolean = false;
+    protected warningCollector: WarningCollector = new WarningCollector();
 
     /**
      * Load a MusicXML file
@@ -370,6 +383,7 @@ export class OpenSheetMusicDisplay {
             this.drawer.Backends.push(backend);
             this.graphic.drawer = this.drawer;
         }
+        this.setupInteractionListeners();
     }
 
     // for now SVG only, see generateImages_browserless (PNG/SVG)
@@ -661,6 +675,23 @@ export class OpenSheetMusicDisplay {
         if (options.skyBottomLineBatchMinMeasures !== undefined) {
             this.rules.SkyBottomLineBatchMinMeasures = options.skyBottomLineBatchMinMeasures;
         }
+
+        if (options.onMeasureClick !== undefined) {
+            this.onMeasureClick = options.onMeasureClick;
+        }
+        if (options.onNoteClick !== undefined) {
+            this.onNoteClick = options.onNoteClick;
+        }
+        if (options.measureHoverEnabled !== undefined) {
+            this.measureHoverEnabled = options.measureHoverEnabled;
+        }
+        if (options.measureHoverClass !== undefined) {
+            this.measureHoverClass = options.measureHoverClass;
+        }
+        if (options.onWarning !== undefined) {
+            this.rules.WarningCollector.setOnWarningCallback(options.onWarning);
+        }
+        this.setupInteractionListeners();
     }
 
     public setColoringMode(options: IOSMDOptions): void {
@@ -963,6 +994,117 @@ export class OpenSheetMusicDisplay {
         }
     }
 
+    protected setupInteractionListeners(): void {
+        if (this.interactionListenersAttached) {
+            return;
+        }
+        if (!this.onMeasureClick && !this.onNoteClick) {
+            return;
+        }
+
+        this.container.addEventListener("click", this.handleContainerClick.bind(this));
+        if (this.measureHoverEnabled) {
+            this.container.addEventListener("mousemove", this.handleContainerMouseMove.bind(this));
+            this.container.addEventListener("mouseleave", this.handleContainerMouseLeave.bind(this));
+        }
+        this.container.style.cursor = "pointer";
+        this.interactionListenersAttached = true;
+    }
+
+    protected handleContainerClick(event: MouseEvent): void {
+        if (!this.graphic) {
+            return;
+        }
+        const position: PointF2D = this.getPositionOnMusicSheet(event);
+        if (!position) {
+            return;
+        }
+
+        const staffEntry: GraphicalStaffEntry = this.graphic.GetNearestStaffEntry(position);
+        if (!staffEntry) {
+            return;
+        }
+
+        if (this.onNoteClick) {
+            const maxDist: PointF2D = new PointF2D(5, 5);
+            const note: GraphicalNote = this.graphic.GetNearestNote(position, maxDist);
+            if (note) {
+                const measureNumber: number = staffEntry.parentMeasure?.MeasureNumber ?? -1;
+                this.onNoteClick(note, measureNumber);
+                return;
+            }
+        }
+
+        if (this.onMeasureClick && staffEntry.parentMeasure) {
+            const measure: GraphicalMeasure = staffEntry.parentMeasure;
+            const staffIndex: number = measure.ParentStaff?.idInMusicSheet ?? 0;
+            const printedMeasureNumber: number = measure.parentSourceMeasure?.getPrintedMeasureNumber() ?? measure.MeasureNumber;
+            this.onMeasureClick(printedMeasureNumber, staffIndex, measure);
+        }
+    }
+
+    protected handleContainerMouseMove(event: MouseEvent): void {
+        if (!this.graphic || !this.measureHoverEnabled) {
+            return;
+        }
+        const position: PointF2D = this.getPositionOnMusicSheet(event);
+        if (!position) {
+            this.clearMeasureHover();
+            return;
+        }
+
+        const staffEntry: GraphicalStaffEntry = this.graphic.GetNearestStaffEntry(position);
+        const measure: GraphicalMeasure = staffEntry?.parentMeasure;
+
+        if (measure !== this.hoveredMeasure) {
+            this.clearMeasureHover();
+            if (measure) {
+                this.applyMeasureHover(measure);
+            }
+        }
+    }
+
+    protected handleContainerMouseLeave(_event: MouseEvent): void {
+        this.clearMeasureHover();
+    }
+
+    protected applyMeasureHover(measure: GraphicalMeasure): void {
+        this.hoveredMeasure = measure;
+        const svgElement: SVGElement | undefined = this.getMeasureSvgElement(measure);
+        if (svgElement) {
+            svgElement.classList.add(this.measureHoverClass);
+        }
+    }
+
+    protected clearMeasureHover(): void {
+        if (this.hoveredMeasure) {
+            const svgElement: SVGElement | undefined = this.getMeasureSvgElement(this.hoveredMeasure);
+            if (svgElement) {
+                svgElement.classList.remove(this.measureHoverClass);
+            }
+            this.hoveredMeasure = undefined;
+        }
+    }
+
+    protected getMeasureSvgElement(measure: GraphicalMeasure): SVGElement | undefined {
+        const staveElement: Object = (measure as any).stave;
+        if (staveElement && (staveElement as any).getSVGElement) {
+            return (staveElement as any).getSVGElement() as SVGElement;
+        }
+        return undefined;
+    }
+
+    protected getPositionOnMusicSheet(event: MouseEvent): PointF2D | undefined {
+        const rect: DOMRect = this.container.getBoundingClientRect();
+        const scrollLeft: number = this.container.scrollLeft || 0;
+        const scrollTop: number = this.container.scrollTop || 0;
+
+        const x: number = (event.clientX - rect.left + scrollLeft) / this.zoom / 10.0;
+        const y: number = (event.clientY - rect.top + scrollTop) / this.zoom / 10.0;
+
+        return new PointF2D(x, y);
+    }
+
     //#region GETTER / SETTER
     public set DrawSkyLine(value: boolean) {
         this.drawSkyLine = value;
@@ -1008,6 +1150,22 @@ export class OpenSheetMusicDisplay {
     }
     public set AutoResizeEnabled(value: boolean) {
         this.autoResizeEnabled = value;
+    }
+
+    public get Warnings(): OSMDWarning[] {
+        return this.rules.WarningCollector.getWarnings();
+    }
+
+    public get HasWarnings(): boolean {
+        return this.rules.WarningCollector.getWarnings().length > 0;
+    }
+
+    public get HasErrors(): boolean {
+        return this.rules.WarningCollector.hasErrors();
+    }
+
+    public clearWarnings(): void {
+        this.rules.WarningCollector.clear();
     }
 
     public get Zoom(): number {

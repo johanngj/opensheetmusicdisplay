@@ -288,6 +288,9 @@ export abstract class GraphicalMeasure extends GraphicalObject {
             const voice: Voice = voices[idx];
             const voiceDuration: Fraction = new Fraction(0, 1);
             for (const graphicalStaffEntry of this.staffEntries) {
+                if (!graphicalStaffEntry) {
+                    continue;
+                }
                 for (const gve of graphicalStaffEntry.graphicalVoiceEntries) {
                     if (gve.parentVoiceEntry.ParentVoice === voice && gve.notes.length > 0) {
                         voiceDuration.Add(gve.notes[0].graphicalNoteLength);

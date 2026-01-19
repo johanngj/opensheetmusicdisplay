@@ -38,6 +38,7 @@ import { AbstractNotationInstruction } from "../VoiceData/Instructions/AbstractN
 import { TechnicalInstruction, TechnicalInstructionType } from "../VoiceData/Instructions/TechnicalInstruction";
 import { Pitch } from "../../Common/DataObjects/Pitch";
 import { LinkedVoice } from "../VoiceData/LinkedVoice";
+import { WarningSeverity, WarningCategory } from "../../OpenSheetMusicDisplay/OSMDWarnings";
 import { ColDirEnum } from "./BoundingBox";
 import { IGraphicalSymbolFactory } from "../Interfaces/IGraphicalSymbolFactory";
 import { ITextMeasurer } from "../Interfaces/ITextMeasurer";
@@ -607,6 +608,16 @@ export abstract class MusicSheetCalculator {
             const len2: number = measure.staffEntries.length;
             for (let idx2: number = 0; idx2 < len2; ++idx2) {
                 const staffEntry: GraphicalStaffEntry = measure.staffEntries[idx2];
+                if (!staffEntry) {
+                    this.rules.WarningCollector.warn(
+                        "MISSING_STAFF_ENTRY",
+                        "Missing staff entry in lyrics calculation",
+                        WarningSeverity.Warning,
+                        WarningCategory.Layout,
+                        measure.MeasureNumber
+                    );
+                    continue;
+                }
 
                 // Collect relevant verse numbers
                 const len3: number = staffEntry.LyricsEntries.length;
@@ -875,6 +886,16 @@ export abstract class MusicSheetCalculator {
                     if (this.rules.ColoringEnabled) {
                         // (re-)color notes
                         for (const staffEntry of graphicalMeasure.staffEntries) {
+                            if (!staffEntry) {
+                                this.rules.WarningCollector.warn(
+                                    "MISSING_STAFF_ENTRY",
+                                    "Missing staff entry in coloring",
+                                    WarningSeverity.Warning,
+                                    WarningCategory.Layout,
+                                    graphicalMeasure.MeasureNumber
+                                );
+                                continue;
+                            }
                             for (const gve of staffEntry.graphicalVoiceEntries) {
                                 gve.applyCustomNoteheads();
                                 gve.color();
@@ -1087,7 +1108,7 @@ export abstract class MusicSheetCalculator {
                     }
                     let previousChordContainer: GraphicalChordSymbolContainer;
                     for (const staffEntry of measure.staffEntries) {
-                        if (!staffEntry.graphicalChordContainers || staffEntry.graphicalChordContainers.length === 0) {
+                        if (!staffEntry || !staffEntry.graphicalChordContainers || staffEntry.graphicalChordContainers.length === 0) {
                             continue;
                         }
                         for (let i: number = 0; i < staffEntry.graphicalChordContainers.length; i++) {
@@ -1204,6 +1225,15 @@ export abstract class MusicSheetCalculator {
         let minOffset: number = Number.MAX_SAFE_INTEGER;
         let maxOffset: number = Number.MIN_SAFE_INTEGER;
         for (const staffEntry of staffEntries) {
+            if (!staffEntry) {
+                this.rules.WarningCollector.warn(
+                    "MISSING_STAFF_ENTRY",
+                    "Missing staff entry in chord symbol alignment",
+                    WarningSeverity.Warning,
+                    WarningCategory.Layout
+                );
+                continue;
+            }
             for (const graphicalChordContainer of staffEntry.graphicalChordContainers) {
                 const gps: BoundingBox = graphicalChordContainer.PositionAndShape;
                 const parentBbox: BoundingBox = gps.Parent; // usually the staffEntry (bbox), but sometimes measure (for whole measure rests)
@@ -2661,6 +2691,12 @@ export abstract class MusicSheetCalculator {
 
     private setTieDirections(staffEntry: GraphicalStaffEntry): void {
         if (!staffEntry) {
+            this.rules.WarningCollector.warn(
+                "MISSING_STAFF_ENTRY",
+                "Missing staff entry in tie direction calculation",
+                WarningSeverity.Warning,
+                WarningCategory.MusicalElement
+            );
             return;
         }
         const ties: Tie[] = staffEntry.ties;
@@ -2727,6 +2763,16 @@ export abstract class MusicSheetCalculator {
                 }
                 for (let idx: number = 0, len: number = measure.staffEntries.length; idx < len; ++idx) {
                     const graphicalStaffEntry: GraphicalStaffEntry = measure.staffEntries[idx];
+                    if (!graphicalStaffEntry) {
+                        this.rules.WarningCollector.warn(
+                            "MISSING_STAFF_ENTRY",
+                            "Missing staff entry in vertical container calculation",
+                            WarningSeverity.Warning,
+                            WarningCategory.Layout,
+                            measure.MeasureNumber
+                        );
+                        continue;
+                    }
                     const verticalContainer: VerticalGraphicalStaffEntryContainer =
                         this.graphicalMusicSheet.getOrCreateVerticalContainer(graphicalStaffEntry.getAbsoluteTimestamp());
                     if (verticalContainer) {
@@ -2933,6 +2979,16 @@ export abstract class MusicSheetCalculator {
         }
         // check wantedStemDirections of beam notes at end of measure (e.g. for beam with grace notes)
         for (const staffEntry of measure.staffEntries) {
+            if (!staffEntry) {
+                this.rules.WarningCollector.warn(
+                    "MISSING_STAFF_ENTRY",
+                    "Missing staff entry in beam stem direction calculation",
+                    WarningSeverity.Warning,
+                    WarningCategory.MusicalElement,
+                    measure.MeasureNumber
+                );
+                continue;
+            }
             for (const voiceEntry of staffEntry.graphicalVoiceEntries) {
                 this.setBeamNotesWantedStemDirections(voiceEntry.parentVoiceEntry);
             }
@@ -3083,6 +3139,16 @@ export abstract class MusicSheetCalculator {
                     const measure: GraphicalMeasure = line.Measures[idx4];
                     for (let idx5: number = 0, len5: number = measure.staffEntries.length; idx5 < len5; ++idx5) {
                         const graphicalStaffEntry: GraphicalStaffEntry = measure.staffEntries[idx5];
+                        if (!graphicalStaffEntry) {
+                            this.rules.WarningCollector.warn(
+                                "MISSING_STAFF_ENTRY",
+                                "Missing staff entry in articulation marks calculation",
+                                WarningSeverity.Warning,
+                                WarningCategory.MusicalElement,
+                                measure.MeasureNumber
+                            );
+                            continue;
+                        }
                         for (let idx6: number = 0, len6: number = graphicalStaffEntry.sourceStaffEntry.VoiceEntries.length; idx6 < len6; ++idx6) {
                             const voiceEntry: VoiceEntry = graphicalStaffEntry.sourceStaffEntry.VoiceEntries[idx6];
                             if (voiceEntry.Articulations.length > 0) {
@@ -3104,6 +3170,16 @@ export abstract class MusicSheetCalculator {
                     const measure: GraphicalMeasure = line.Measures[idx4];
                     for (let idx5: number = 0, len5: number = measure.staffEntries.length; idx5 < len5; ++idx5) {
                         const graphicalStaffEntry: GraphicalStaffEntry = measure.staffEntries[idx5];
+                        if (!graphicalStaffEntry) {
+                            this.rules.WarningCollector.warn(
+                                "MISSING_STAFF_ENTRY",
+                                "Missing staff entry in ornaments calculation",
+                                WarningSeverity.Warning,
+                                WarningCategory.MusicalElement,
+                                measure.MeasureNumber
+                            );
+                            continue;
+                        }
                         for (let idx6: number = 0, len6: number = graphicalStaffEntry.sourceStaffEntry.VoiceEntries.length; idx6 < len6; ++idx6) {
                             const voiceEntry: VoiceEntry = graphicalStaffEntry.sourceStaffEntry.VoiceEntries[idx6];
                             if (voiceEntry.OrnamentContainer) {
@@ -3248,6 +3324,16 @@ export abstract class MusicSheetCalculator {
                     const measure: GraphicalMeasure = line.Measures[idx4];
                     for (let idx5: number = 0, len5: number = measure.staffEntries.length; idx5 < len5; ++idx5) {
                         const graphicalStaffEntry: GraphicalStaffEntry = measure.staffEntries[idx5];
+                        if (!graphicalStaffEntry) {
+                            this.rules.WarningCollector.warn(
+                                "MISSING_STAFF_ENTRY",
+                                "Missing staff entry in rest placement optimization",
+                                WarningSeverity.Warning,
+                                WarningCategory.Layout,
+                                measure.MeasureNumber
+                            );
+                            continue;
+                        }
                         this.optimizeRestNotePlacement(graphicalStaffEntry, measure);
                     }
                 }
@@ -3319,6 +3405,16 @@ export abstract class MusicSheetCalculator {
             for (const staffLine of musicSystem.StaffLines) {
                 for (const measure of staffLine.Measures) {
                     for (const staffEntry of measure.staffEntries) {
+                        if (!staffEntry) {
+                            this.rules.WarningCollector.warn(
+                                "MISSING_STAFF_ENTRY",
+                                "Missing staff entry in tie layout calculation",
+                                WarningSeverity.Warning,
+                                WarningCategory.MusicalElement,
+                                measure.MeasureNumber
+                            );
+                            continue;
+                        }
                         for (const graphicalTie of staffEntry.GraphicalTies) {
                             if (graphicalTie.StartNote !== undefined && graphicalTie.StartNote.parentVoiceEntry.parentStaffEntry === staffEntry) {
                                 const tieIsAtSystemBreak: boolean = (

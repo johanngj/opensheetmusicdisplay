@@ -1,6 +1,9 @@
 import { ColoringModes } from "../Common/Enums/ColoringModes";
 import { FontStyles } from "../Common/Enums/FontStyles";
 import { DrawingParametersEnum } from "../Common/Enums/DrawingParametersEnum";
+import { GraphicalMeasure } from "../MusicalScore/Graphical/GraphicalMeasure";
+import { GraphicalNote } from "../MusicalScore/Graphical/GraphicalNote";
+import { OSMDWarning } from "./OSMDWarnings";
 
 export enum CursorType {
     Standard = 0,
@@ -269,6 +272,38 @@ export interface IOSMDOptions {
      * Defines the minimum number of measures in the entire sheet music where the skyline and bottom-line batch calculation is enabled.
      */
     skyBottomLineBatchMinMeasures?: number;
+
+    // ===== Interaction Options =====
+
+    /**
+     * Callback when a measure is clicked.
+     * @param measureNumber The measure number (1-based)
+     * @param staffIndex The staff index (0-based)
+     * @param measure The GraphicalMeasure that was clicked
+     */
+    onMeasureClick?: (measureNumber: number, staffIndex: number, measure: GraphicalMeasure) => void;
+
+    /**
+     * Callback when a note is clicked.
+     * @param note The GraphicalNote that was clicked
+     * @param measureNumber The measure number containing the note
+     */
+    onNoteClick?: (note: GraphicalNote, measureNumber: number) => void;
+
+    /**
+     * Enable hover highlighting on measures. When true, measures will be highlighted on mouse hover.
+     * Requires onMeasureClick to be set for the highlighting to be useful.
+     * Default: false
+     */
+    measureHoverEnabled?: boolean;
+
+    /**
+     * CSS class applied to hovered measures.
+     * Default: 'osmd-measure-hover'
+     */
+    measureHoverClass?: string;
+
+    onWarning?: (warning: OSMDWarning) => void;
 }
 
 export enum AlignRestOption {

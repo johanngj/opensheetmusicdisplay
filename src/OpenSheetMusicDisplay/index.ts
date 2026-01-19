@@ -3,4 +3,5 @@
 export * from "./AJAX";
 export * from "./Cursor";
 export * from "./OSMDOptions";
+export * from "./OSMDWarnings";
 export * from "./OpenSheetMusicDisplay";

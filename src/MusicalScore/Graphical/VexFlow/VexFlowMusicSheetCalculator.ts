@@ -28,6 +28,7 @@ import { unitInPixels } from "./VexFlowMusicSheetDrawer";
 import { VexFlowGraphicalNote } from "./VexFlowGraphicalNote";
 import { TechnicalInstruction } from "../../VoiceData/Instructions/TechnicalInstruction";
 import { GraphicalLyricEntry } from "../GraphicalLyricEntry";
+import { WarningSeverity, WarningCategory } from "../../../OpenSheetMusicDisplay/OSMDWarnings";
 import { GraphicalLabel } from "../GraphicalLabel";
 import { LyricsEntry } from "../../VoiceData/Lyrics/LyricsEntry";
 import { GraphicalLyricWord } from "../GraphicalLyricWord";
@@ -1418,8 +1419,22 @@ export class VexFlowMusicSheetCalculator extends MusicSheetCalculator {
 
   private calculateOctaveShiftSkyBottomLine(startStaffEntry: GraphicalStaffEntry, endStaffEntry: GraphicalStaffEntry,
                                             vfOctaveShift: VexFlowOctaveShift, parentStaffline: StaffLine): void {
+    if (!startStaffEntry) {
+      this.rules.WarningCollector.warn(
+        "OCTAVESHIFT_NO_START",
+        "Octave shift missing start staff entry",
+        WarningSeverity.Warning,
+        WarningCategory.MusicalElement
+      );
+      return;
+    }
     if (!endStaffEntry) {
-      log.warn("octaveshift: no endStaffEntry");
+      this.rules.WarningCollector.warn(
+        "OCTAVESHIFT_NO_END",
+        "Octave shift missing end staff entry",
+        WarningSeverity.Warning,
+        WarningCategory.MusicalElement
+      );
       return;
     }
     let endBbox: BoundingBox = endStaffEntry.PositionAndShape;
