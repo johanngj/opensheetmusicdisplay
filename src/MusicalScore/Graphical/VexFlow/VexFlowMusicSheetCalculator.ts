@@ -1043,9 +1043,9 @@ export class VexFlowMusicSheetCalculator extends MusicSheetCalculator {
               lastNote = endStaffEntry;
             }
 
-            if (lastNote.graphicalVoiceEntries.length === 1 &&
-              lastNote.graphicalVoiceEntries[0].notes.length === 1 &&
-              lastNote.graphicalVoiceEntries[0].notes[0].sourceNote.isWholeMeasureNote()
+            if (lastNote?.graphicalVoiceEntries?.length === 1 &&
+              lastNote.graphicalVoiceEntries[0]?.notes?.length === 1 &&
+              lastNote.graphicalVoiceEntries[0].notes[0]?.sourceNote?.isWholeMeasureNote()
             ) {
               // also draw octaveshift until end of measure if we have a whole note that goes over the whole measure
               nextOctaveShift.graphicalEndAtMeasureEnd = true;

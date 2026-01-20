@@ -3342,6 +3342,12 @@ export abstract class MusicSheetCalculator {
     }
 
     private calculateTwoRestNotesPlacementWithCollisionDetection(graphicalStaffEntry: GraphicalStaffEntry): void {
+        // Safety check: ensure both voice entries exist with notes
+        if (graphicalStaffEntry.graphicalVoiceEntries.length < 2 ||
+            graphicalStaffEntry.graphicalVoiceEntries[0].notes.length === 0 ||
+            graphicalStaffEntry.graphicalVoiceEntries[1].notes.length === 0) {
+            return;
+        }
         const firstRestNote: GraphicalNote = graphicalStaffEntry.graphicalVoiceEntries[0].notes[0];
         const secondRestNote: GraphicalNote = graphicalStaffEntry.graphicalVoiceEntries[1].notes[0];
         secondRestNote.PositionAndShape.RelativePosition = new PointF2D(0.0, 2.5);
@@ -3357,6 +3363,11 @@ export abstract class MusicSheetCalculator {
     }
 
     private calculateRestNotePlacementWithCollisionDetectionFromGraphicalNote(graphicalStaffEntry: GraphicalStaffEntry): void {
+        if (graphicalStaffEntry.graphicalVoiceEntries.length < 2 ||
+            graphicalStaffEntry.graphicalVoiceEntries[0].notes.length === 0 ||
+            graphicalStaffEntry.graphicalVoiceEntries[1].notes.length === 0) {
+            return;
+        }
         let restNote: GraphicalNote;
         let graphicalNotes: GraphicalNote[];
         if (graphicalStaffEntry.graphicalVoiceEntries[0].notes[0].sourceNote.isRest()) {

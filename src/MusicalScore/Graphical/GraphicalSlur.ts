@@ -703,6 +703,10 @@ export class GraphicalSlur extends GraphicalCurve {
 
         // single Voice, opposite to StemDirection
         // here should only be one voiceEntry, so we can take graphicalVoiceEntries[0]:
+        // Safety check: ensure graphicalVoiceEntries exist before accessing
+        if (startStaffEntry.graphicalVoiceEntries.length === 0 || endStaffEntry.graphicalVoiceEntries.length === 0) {
+            return;
+        }
         const startStemDirection: StemDirectionType = startStaffEntry.graphicalVoiceEntries[0].parentVoiceEntry.StemDirection;
         const endStemDirection: StemDirectionType = endStaffEntry.graphicalVoiceEntries[0].parentVoiceEntry.StemDirection;
         if (startStemDirection  ===
